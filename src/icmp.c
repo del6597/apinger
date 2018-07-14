@@ -66,7 +66,7 @@
 #endif /* HAVE_LINUX_FILTER_H */
 
 /* filter instalation code borrowed from iputils */
-void install_filter(){
+void install_filter() {
 #ifdef HAVE_LINUX_FILTER_H
         static struct sock_filter insns[] = {
                 BPF_STMT(BPF_LDX|BPF_B|BPF_MSH, 0), /* Skip IP header. F..g BSD... Look into ping.  */
@@ -86,14 +86,14 @@ void install_filter(){
         /* Patch bpflet for current identifier. */
         insns[2] = (struct sock_filter)BPF_JUMP(BPF_JMP|BPF_JEQ|BPF_K, htons(ident), 0, 1);
 
-        if (setsockopt(icmp_sock, SOL_SOCKET, SO_ATTACH_FILTER, &filter, sizeof(filter)))
+        if (setsockopt(icmp_sock, SOL_SOCKET, SO_ATTACH_FILTER, &filter, sizeof(filter))) {
                 myperror("WARNING: failed to install socket filter\n");
+	}
 #endif /* HAS_LINUX_FILTER_H */
 }
 
 /* function borrowed from iputils */
-u_short in_cksum(const u_short *addr, register int len, u_short csum){
-
+u_short in_cksum(const u_short *addr, register int len, u_short csum) {
 	register int nleft = len;
         const u_short *w = addr;
         register u_short answer;
@@ -111,8 +111,9 @@ u_short in_cksum(const u_short *addr, register int len, u_short csum){
         }
 
         /* mop up an odd byte, if necessary */
-        if (nleft == 1)
+        if (nleft == 1) {
                 sum += htons(*(u_char *)w << 8);
+	}
 
         /*
          * add back carry outs from top 16 bits to low 16 bits
@@ -123,14 +124,13 @@ u_short in_cksum(const u_short *addr, register int len, u_short csum){
         return (answer);
 }
 
-void send_icmp_probe(struct target *t,int seq){
-static char buf[1024];
-struct icmp *p=(struct icmp *)buf;
-struct trace_info ti;
-struct timeval cur_time;
-int size;
-int ret;
-
+void send_icmp_probe(struct target *t,int seq) {
+	static char buf[1024];
+	struct icmp *p=(struct icmp *)buf;
+	struct trace_info ti;
+	struct timeval cur_time;
+	int size;
+	int ret;
 
 	p->icmp_type=ICMP_ECHO;
 	p->icmp_code=0;
@@ -152,24 +152,26 @@ int ret;
 	p->icmp_cksum = in_cksum((u_short *)p,size,0);
 	ret=sendto(icmp_sock,p,size,MSG_DONTWAIT,
 			(struct sockaddr *)&t->addr.addr4,sizeof(t->addr.addr4));
-	if (ret<0){
-		if (config->debug) myperror("sendto");
+	if (ret<0) {
+		if (config->debug) {
+			myperror("sendto");
+		}
 	}
 }
 
-void recv_icmp(void){
-int len,hlen,icmplen,datalen;
-char buf[1024];
-struct sockaddr_in from;
-struct icmp *icmp;
-struct ip *ip;
-struct timeval time_recv;
-struct timeval *time_recvp=NULL;
+void recv_icmp(void) {
+	int len,hlen,icmplen,datalen;
+	char buf[1024];
+	struct sockaddr_in from;
+	struct icmp *icmp;
+	struct ip *ip;
+	struct timeval time_recv;
+	struct timeval *time_recvp=NULL;
 #ifdef HAVE_RECVMSG
-char ans_data[4096];
-struct iovec iov;
-struct msghdr msg;
-struct cmsghdr *c;
+	char ans_data[4096];
+	struct iovec iov;
+	struct msghdr msg;
+	struct cmsghdr *c;
 
 	iov.iov_base=buf;
 	iov.iov_len=1000;
@@ -181,60 +183,76 @@ struct cmsghdr *c;
 	msg.msg_controllen=sizeof(ans_data);
 	len=recvmsg(icmp_sock, &msg, MSG_DONTWAIT);
 #else
-socklen_t sl;
+	socklen_t sl;
 
 	sl=sizeof(from);
 	len=recvfrom(icmp_sock,buf,1024,MSG_DONTWAIT,(struct sockaddr *)&from,&sl);
 #endif
-	if (len<0){
-		if (errno==EAGAIN) return;
+	if (len<0) {
+		if (errno==EAGAIN) {
+			return;
+		}
+
 		myperror("recvfrom");
 		return;
 	}
-	if (len==0) return;
+
+	if (len==0) {
+		return;
+	}
+
 #if defined(HAVE_RECVMSG) && defined(SO_TIMESTAMP)
 	debug("checking CMSG...");
 	for (c = CMSG_FIRSTHDR(&msg); c; c = CMSG_NXTHDR(&msg, c)) {
 		debug("CMSG level: %i type: %i",c->cmsg_level,c->cmsg_type);
-		if (c->cmsg_level != SOL_SOCKET || c->cmsg_type != SO_TIMESTAMP)
+		if (c->cmsg_level != SOL_SOCKET || c->cmsg_type != SO_TIMESTAMP) {
 			continue;
-		if (c->cmsg_len < CMSG_LEN(sizeof(struct timeval)))
+		}
+
+		if (c->cmsg_len < CMSG_LEN(sizeof(struct timeval))) {
 			continue;
+		}
+
 		time_recvp = (struct timeval*)CMSG_DATA(c);
 		debug("Got timestampt from CMSG");
 	}
 #endif
-	if (time_recvp==NULL){
+	if (time_recvp==NULL) {
 #ifdef SIOCGSTAMP
-		if (!ioctl(icmp_sock, SIOCGSTAMP, &time_recv)){
+		if (!ioctl(icmp_sock, SIOCGSTAMP, &time_recv)) {
 			debug("Got timestampt from ioctl()");
-		}else
+		} else
 #endif
 			gettimeofday(&time_recv,NULL);
 		time_recvp=&time_recv;
 	}
+
 	ip=(struct ip *)buf;
 	hlen=ip->ip_hl*4;
 	if (len<hlen+8 || ip->ip_hl<5) {
 		debug("Too short packet reveiced");
 		return;
 	}
+
 	icmplen=len-hlen;
 	icmp=(struct icmp *)(buf+hlen);
-	if (icmp->icmp_type != ICMP_ECHOREPLY){
+	if (icmp->icmp_type != ICMP_ECHOREPLY) {
 		debug("Other (%i) icmp type received",icmp->icmp_type);
 		return;
 	}
-	if (icmp->icmp_id != ident){
+
+	if (icmp->icmp_id != ident) {
 		debug("Alien echo-reply received");
 		return;
 	}
+
 	debug("Ping reply from %s",inet_ntoa(from.sin_addr));
 	datalen=icmplen-sizeof(*icmp);
-	if (datalen!=sizeof(struct trace_info)){
+	if (datalen!=sizeof(struct trace_info)) {
 		debug("Packet data truncated.");
 		return;
 	}
+
 #ifdef FORKED_RECEIVER
 	pipe_reply(*time_recvp,icmp->icmp_seq,(struct trace_info*)(icmp+1));
 #else
@@ -242,19 +260,20 @@ socklen_t sl;
 #endif
 }
 
-int make_icmp_socket(void){
-int on;
+int make_icmp_socket(void) {
+	int on;
 
 	icmp_sock = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-	if (icmp_sock<0)
+	if (icmp_sock<0) {
 		myperror("socket");
+	}
 #ifdef SO_TIMESTAMP
-	else{
+	else {
 		on=1;
-		if (setsockopt(icmp_sock, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on)))
+		if (setsockopt(icmp_sock, SOL_SOCKET, SO_TIMESTAMP, &on, sizeof(on))) {
 			myperror("setsockopt(SO_TIMESTAMP)");
+		}
 	}
 #endif
 	return icmp_sock;
 }
-

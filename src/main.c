@@ -106,21 +106,22 @@ volatile int status_request=0;
 volatile int interrupted_by=0;
 volatile int sigpipe_received=0;
 void signal_handler(int signum) {
-	if (signum==SIGPIPE) {
-		signal(SIGPIPE,signal_handler);
-		sigpipe_received=1;
-	} else {
-		if (signum==SIGHUP) {
+	switch (signum) {
+		case SIGPIPE:
+			signal(SIGPIPE,signal_handler);
+			sigpipe_received=1;
+			break;
+		case SIGHUP:
 			signal(SIGHUP,signal_handler);
 			reload_request=1;
-		}
-	} else {
-		if (signum==SIGUSR1) {
+			break;
+		case SIGUSR1:
 			signal(SIGUSR1,signal_handler);
 			status_request=1;
-		}
-	} else {
-		interrupted_by=signum;
+			break;
+		default:
+			interrupted_by=signum;
+			break;
 	}
 }
 
