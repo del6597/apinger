@@ -68,7 +68,7 @@ struct timeval operation_started;
 
 
 int is_alarm_on(struct target *t,struct alarm_cfg *a){
-struct active_alarm_list *al;
+	struct active_alarm_list *al;
 
 	for(al=t->active_alarms;al;al=al->next)
 		if (al->alarm==a)
@@ -80,20 +80,20 @@ static char msgid_buf[1024];
 static char hostnamebuf[256]="-";
 
 char *gen_msgid(struct target *t,char *suff){
-struct timeval cur_time;
-	
+	struct timeval cur_time;
+
 	gettimeofday(&cur_time,NULL);
-	
+
 	gethostname(hostnamebuf,sizeof(hostnamebuf));
 	sprintf(msgid_buf,"<%p.%li.%s@%s>",
-				t,(long int)(cur_time.tv_usec/1000+cur_time.tv_sec*1000),
-				suff,hostnamebuf);
+			t,(long int)(cur_time.tv_usec/1000+cur_time.tv_sec*1000),
+			suff,hostnamebuf);
 	return strdup(msgid_buf);
 }
 
 char *alarm_on(struct target *t,struct alarm_cfg *a){
-struct active_alarm_list *al;
-struct timeval cur_time,tv;
+	struct active_alarm_list *al;
+	struct timeval cur_time,tv;
 
 	gettimeofday(&cur_time,NULL);
 	al=NEW(struct active_alarm_list,1);
@@ -111,8 +111,8 @@ struct timeval cur_time,tv;
 }
 
 char *alarm_off(struct target *t,struct alarm_cfg *a){
-struct active_alarm_list *al,*pa,*na;
-char *msgid;
+	struct active_alarm_list *al,*pa,*na;
+	char *msgid;
 
 	pa=NULL;
 	for(al=t->active_alarms;al;al=na){
@@ -135,12 +135,12 @@ char *msgid;
 static char *macros_buf=NULL;
 static int macros_buf_l=0;
 const char * subst_macros(const char *string,struct target *t,struct alarm_cfg *a,int on){
-char *p;
-int nmacros=0;
-int i,sl,l,n;
-char **values;
-char ps[16],pr[16],al[16],ad[16],ts[100];
-time_t tim;
+	char *p;
+	int nmacros=0;
+	int i,sl,l,n;
+	char **values;
+	char ps[16],pr[16],al[16],ad[16],ts[100];
+	time_t tim;
 
 	if (string==NULL || string[0]=='\000') return "";
 	for(i=0;string[i]!='\000';i++){
@@ -158,83 +158,83 @@ time_t tim;
 		if (string[i]!='%') continue;
 		i++;
 		switch(string[i]){
-		case 't':
-			values[n]=t->name;
-			break;
-		case 'T':
-			values[n]=t->description;
-			break;
-		case 'a':
-			if (a)
-				values[n]=a->name;
-			else
-				values[n]="?";
-			break;
-		case 'A':
-			if (a)
-				switch(a->type){
-				case AL_DOWN:
-					values[n]="down";
-					break;
-				case AL_LOSS:
-					values[n]="loss";
-					break;
-				case AL_DELAY:
-					values[n]="delay";
-					break;
-				default:
-					values[n]="unknown";
-					break;
-				}
-			else
-				values[n]="?";
-			break;
-		case 'r':
-			switch(on){
-			case -1:
-				values[n]="alarm canceled (config reload)";
+			case 't':
+				values[n]=t->name;
 				break;
-			case 0:
-				values[n]="alarm canceled";
+			case 'T':
+				values[n]=t->description;
+				break;
+			case 'a':
+				if (a)
+					values[n]=a->name;
+				else
+					values[n]="?";
+				break;
+			case 'A':
+				if (a)
+					switch(a->type){
+						case AL_DOWN:
+							values[n]="down";
+							break;
+						case AL_LOSS:
+							values[n]="loss";
+							break;
+						case AL_DELAY:
+							values[n]="delay";
+							break;
+						default:
+							values[n]="unknown";
+							break;
+					}
+				else
+					values[n]="?";
+				break;
+			case 'r':
+				switch(on){
+					case -1:
+						values[n]="alarm canceled (config reload)";
+						break;
+					case 0:
+						values[n]="alarm canceled";
+						break;
+					default:
+						values[n]="ALARM";
+						break;
+				}
+				break;
+			case 'p':
+				sprintf(ps,"%i",t->last_sent);
+				values[n]=ps;
+				break;
+			case 'P':
+				sprintf(pr,"%i",t->received);
+				values[n]=pr;
+				break;
+			case 'l':
+				if (AVG_LOSS_KNOWN(t)){
+					sprintf(al,"%0.1f%%",AVG_LOSS(t));
+					values[n]=al;
+				}
+				else values[n]="n/a";
+				break;
+			case 'd':
+				if (AVG_DELAY_KNOWN(t)){
+					sprintf(ad,"%0.3fms",AVG_DELAY(t));
+					values[n]=ad;
+				}
+				else values[n]="n/a";
+				break;
+			case 's':
+				tim=time(NULL);
+				strftime(ts,100,config->timestamp_format,localtime(&tim));
+				values[n]=ts;
+				break;
+			case '%':
+				values[n]="%";
 				break;
 			default:
-				values[n]="ALARM";
+				values[n]="";
 				break;
-			}
-			break;
-		case 'p':
-			sprintf(ps,"%i",t->last_sent);
-			values[n]=ps;
-			break;
-		case 'P':
-			sprintf(pr,"%i",t->received);
-			values[n]=pr;
-			break;
-		case 'l':
-			if (AVG_LOSS_KNOWN(t)){
-				sprintf(al,"%0.1f%%",AVG_LOSS(t));
-				values[n]=al;
-			}
-			else values[n]="n/a";
-			break;
-		case 'd':
-			if (AVG_DELAY_KNOWN(t)){
-				sprintf(ad,"%0.3fms",AVG_DELAY(t));
-				values[n]=ad;
-			}
-			else values[n]="n/a";
-			break;
-		case 's':
-			tim=time(NULL);
-			strftime(ts,100,config->timestamp_format,localtime(&tim));
-			values[n]=ts;
-			break;
-		case '%':
-			values[n]="%";
-			break;
-		default:
-			values[n]="";
-			break;
 		}
 		l+=strlen(values[n])-1;
 		n++;
@@ -267,8 +267,8 @@ time_t tim;
 }
 
 void write_report(FILE *f,struct target *t,struct alarm_cfg *a,int on){
-time_t tm;
-	
+	time_t tm;
+
 	tm=time(NULL);
 	fprintf(f,"%s",ctime(&tm));
 	if (on)
@@ -290,11 +290,11 @@ time_t tm;
 }
 
 void make_reports(struct target *t,struct alarm_cfg *a,int on,char* thisid,char* lastid){
-FILE *p;
-char buf[1024];
-char *mailto,*mailfrom,*mailenvfrom;
-int ret;
-const char *command;
+	FILE *p;
+	char buf[1024];
+	char *mailto,*mailfrom,*mailenvfrom;
+	int ret;
+	const char *command;
 
 	mailto=a->mailto;
 	mailenvfrom=a->mailenvfrom;
@@ -323,7 +323,7 @@ const char *command;
 			fprintf(p,"Message-Id: %s\n",thisid);
 		if (lastid!=NULL && lastid[0]!='\000')
 			fprintf(p,"References: %s\n",lastid);
-				
+
 		fprintf(p,"\n");
 		write_report(p,t,a,on);
 		ret=pclose(p);
@@ -377,14 +377,14 @@ const char *command;
 }
 
 void make_delayed_reports(void){
-struct alarm_cfg *alarm;
-struct target target;
-int on;
-char *msgid,*references;
-struct delayed_report *dr,*pdr,*ndr;
-int names_len,descriptions_len,references_len;
-char *names,*descriptions;
-	
+	struct alarm_cfg *alarm;
+	struct target target;
+	int on;
+	char *msgid,*references;
+	struct delayed_report *dr,*pdr,*ndr;
+	int names_len,descriptions_len,references_len;
+	char *names,*descriptions;
+
 
 	if (delayed_reports==NULL) return;
 	on=delayed_reports->on;
@@ -458,8 +458,8 @@ char *names,*descriptions;
 }
 
 void toggle_alarm(struct target *t,struct alarm_cfg *a,int on){
-char *thisid=NULL,*lastid=NULL;
-struct delayed_report *dr,*tdr;
+	char *thisid=NULL,*lastid=NULL;
+	struct delayed_report *dr,*tdr;
 
 	if (on>0){
 		logit("ALARM: %s(%s)  *** %s ***",t->description,t->name,a->name);
@@ -501,8 +501,8 @@ struct delayed_report *dr,*tdr;
 
 /* if a time came for the next event schedule next one in given interval and return 1 */
 int scheduled_event(struct timeval *next_event,struct timeval *cur_time,int interval){
-struct timeval ct,tv;
-int ret;
+	struct timeval ct,tv;
+	int ret;
 
 	if (cur_time==NULL){
 		gettimeofday(&ct,NULL);
@@ -526,9 +526,9 @@ int ret;
 }
 
 void send_probe(struct target *t){
-int i,i1;
-char buf[100];
-int seq;
+	int i,i1;
+	char buf[100];
+	int seq;
 
 	seq=++t->last_sent;
 	debug("Sending ping #%i to %s (%s)",seq,t->description,t->name);
@@ -549,7 +549,7 @@ int seq;
 		i1=(t->last_sent-t->config->avg_loss_delay_samples)
 			%(t->config->avg_loss_delay_samples+t->config->avg_loss_samples);
 		if (!t->queue[i1]) t->recently_lost++;
-			debug("Recently lost packets: %i",t->recently_lost);
+		debug("Recently lost packets: %i",t->recently_lost);
 	}
 
 	t->upsent++;
@@ -557,21 +557,20 @@ int seq;
 
 
 void analyze_reply(struct timeval time_recv,int icmp_seq,struct trace_info *ti){
-struct target *t;
-struct timeval tv;
-double delay,avg_delay,avg_loss;
-double tmp;
-int i;
-int previous_received;
-struct alarm_list *al;
-struct active_alarm_list *aal,*paa,*naa;
-struct alarm_cfg *a;
+	struct target *t;
+	struct timeval tv;
+	double delay,avg_delay,avg_loss;
+	double tmp;
+	int i;
+	struct alarm_list *al;
+	struct active_alarm_list *aal,*naa;
+	struct alarm_cfg *a;
 
 	if (icmp_seq!=(ti->seq%65536)){
 		debug("Sequence number mismatch.");
 		return;
 	}
-		
+
 	for(t=targets;t!=NULL;t=t->next){
 		if (t==ti->target_id) break;
 	}
@@ -579,7 +578,6 @@ struct alarm_cfg *a;
 		logit("Couldn't match any target to the echo reply.\n");
 		return;
 	}
-	previous_received=t->last_received;
 	if (ti->seq>t->last_received) t->last_received=ti->seq;
 	t->last_received_tv=time_recv;
 	timersub(&time_recv,&ti->timestamp,&tv);
@@ -600,15 +598,14 @@ struct alarm_cfg *a;
 	if (!t->queue[i] && ti->seq<=t->last_sent-t->config->avg_loss_delay_samples)
 		t->recently_lost--;
 	t->queue[i]=1;
-	
+
 	if (AVG_LOSS_KNOWN(t)){
 		avg_loss=AVG_LOSS(t);
 	}else
 		avg_loss=0;
 
 	debug("(avg. loss: %5.1f%%)",avg_loss);
-	
-	paa=NULL;
+
 	for(aal=t->active_alarms;aal;aal=naa){
 		naa=aal->next;
 		a=aal->alarm;
@@ -617,8 +614,8 @@ struct alarm_cfg *a;
 			avg_loss=0;
 		}
 		if ((a->type==AL_DOWN)
-		   || (a->type==AL_DELAY && avg_delay<a->p.lh.low)
-		   || (a->type==AL_LOSS && avg_loss<a->p.lh.low) ){
+				|| (a->type==AL_DELAY && avg_delay<a->p.lh.low)
+				|| (a->type==AL_LOSS && avg_loss<a->p.lh.low) ){
 			toggle_alarm(t,a,0);
 		}
 	}
@@ -627,27 +624,27 @@ struct alarm_cfg *a;
 		a=al->alarm;
 		if (is_alarm_on(t,a)) continue;
 		switch(a->type){
-		case AL_DELAY:
-			if (AVG_DELAY_KNOWN(t) && avg_delay>a->p.lh.high )
-				toggle_alarm(t,a,1);
-			break;
-		case AL_LOSS:
-			if ( avg_loss > a->p.lh.high )
-				toggle_alarm(t,a,1);
-			break;
-		default:
-			break;
+			case AL_DELAY:
+				if (AVG_DELAY_KNOWN(t) && avg_delay>a->p.lh.high )
+					toggle_alarm(t,a,1);
+				break;
+			case AL_LOSS:
+				if ( avg_loss > a->p.lh.high )
+					toggle_alarm(t,a,1);
+				break;
+			default:
+				break;
 		}
 	}
 }
 
 void configure_targets(void){
-struct target *t,*pt,*nt;
-struct target_cfg *tc;
-struct active_alarm_list *al,*nal;
-union addr addr;
-int r;
-int l;
+	struct target *t,*pt,*nt;
+	struct target_cfg *tc;
+	struct active_alarm_list *al,*nal;
+	union addr addr;
+	int r;
+	int l;
 
 	/* delete all not configured targets */
 	pt=NULL;
@@ -742,8 +739,8 @@ int l;
 }
 
 void free_targets(void){
-struct target *t,*nt;
-struct active_alarm_list *al,*nal;
+	struct target *t,*nt;
+	struct active_alarm_list *al,*nal;
 
 	/* delete all not configured targets */
 	for(t=targets;t;t=nt){
@@ -762,10 +759,10 @@ struct active_alarm_list *al,*nal;
 
 
 void reload_config(void){
-struct target *t;
-struct active_alarm_list *al,*an;
-struct alarm_cfg *a;
-int r;
+	struct target *t;
+	struct active_alarm_list *al,*an;
+	struct alarm_cfg *a;
+	int r;
 
 	while(delayed_reports!=NULL) make_delayed_reports();
 	for(t=targets;t;t=t->next)
@@ -779,17 +776,17 @@ int r;
 }
 
 void write_status(void){
-FILE *f;
-struct target *t;
-struct active_alarm_list *al;
-struct alarm_cfg *a;
-time_t tm;
-int i,qp,really_lost;
-char *buf1,*buf2;
-int err=0;
+	FILE *f;
+	struct target *t;
+	struct active_alarm_list *al;
+	struct alarm_cfg *a;
+	time_t tm;
+	int i,qp,really_lost;
+	char *buf1,*buf2;
+	int err=0;
 
 	if (config->status_file==NULL) return;
-	
+
 	f=fopen(config->status_file,"w");
 	if (f==NULL){
 		logit("Couldn't open status file");
@@ -802,7 +799,7 @@ int err=0;
 		fprintf(f,"Target: %s\n",t->name);
 		fprintf(f,"Description: %s\n",t->description);
 		fprintf(f,"Last reply received: #%i %s",t->last_received,
-			ctime(&t->last_received_tv.tv_sec));
+				ctime(&t->last_received_tv.tv_sec));
 		fprintf(f,"Average delay: %0.3fms\n",AVG_DELAY(t));
 		if (AVG_LOSS_KNOWN(t)){
 			fprintf(f,"Average packet loss: %0.1f%%\n",AVG_LOSS(t));
@@ -826,7 +823,7 @@ int err=0;
 				continue;
 			}
 			qp=(t->last_sent-i)%(t->config->avg_loss_delay_samples+
-							t->config->avg_loss_samples);
+					t->config->avg_loss_samples);
 			if (t->queue[qp])
 				buf1[t->config->avg_loss_delay_samples-i-1]='#';
 			else
@@ -858,7 +855,7 @@ int err=0;
 		}
 		free(buf1);
 		free(buf2);
-		
+
 		fprintf(f,"\n");
 	}
 	fclose(f);
@@ -869,7 +866,7 @@ int err=0;
 int receiver_pipe=0;
 
 void pipe_reply(struct timeval time_recv,int icmp_seq,struct trace_info *ti){
-struct piped_info pi;
+	struct piped_info pi;
 
 	pi.recv_timestamp=time_recv;
 	pi.icmp_seq=icmp_seq;
@@ -878,16 +875,16 @@ struct piped_info pi;
 }
 
 void receiver_loop(void){
-struct pollfd pfd[2];
-int npfd=0;
-int i;
+	struct pollfd pfd[2];
+	int npfd=0;
+	int i;
 
 	signal(SIGTERM,SIG_DFL);
 	signal(SIGINT,SIG_DFL);
 	signal(SIGHUP,SIG_DFL);
 	signal(SIGUSR1,SIG_DFL);
 	signal(SIGPIPE,SIG_DFL);
-	
+
 	if (icmp_sock){
 		pfd[npfd].events=POLLIN|POLLERR|POLLHUP|POLLNVAL;
 		pfd[npfd].revents=0;
@@ -911,21 +908,21 @@ int i;
 #endif
 
 void main_loop(void){
-struct target *t;
-struct timeval cur_time,next_status={0,0},tv,next_report={0,0},next_rrd_update={0,0};
-struct pollfd pfd[2];
-int timeout;
-int npfd=0;
-int i;
-char buf[100];	
-int downtime;
-struct alarm_list *al,*nal;
-struct active_alarm_list *aal;
-struct alarm_cfg *a;
+	struct target *t;
+	struct timeval cur_time,next_status={0,0},tv,next_report={0,0},next_rrd_update={0,0};
+	struct pollfd pfd[2];
+	int timeout;
+	int npfd=0;
+	int i;
+	char buf[100];	
+	int downtime;
+	struct alarm_list *al,*nal;
+	struct active_alarm_list *aal;
+	struct alarm_cfg *a;
 #ifdef FORKED_RECEIVER
-int recv_pipe[2];
-int pid,r;
-struct piped_info pi;
+	int recv_pipe[2];
+	int pid,r;
+	struct piped_info pi;
 #endif
 
 	configure_targets();
