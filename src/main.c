@@ -105,21 +105,21 @@ volatile int reload_request=0;
 volatile int status_request=0;
 volatile int interrupted_by=0;
 volatile int sigpipe_received=0;
-void signal_handler(int signum){
-
-	if (signum==SIGPIPE){
+void signal_handler(int signum) {
+	if (signum==SIGPIPE) {
 		signal(SIGPIPE,signal_handler);
 		sigpipe_received=1;
-	}
-	else if (signum==SIGHUP){
-		signal(SIGHUP,signal_handler);
-		reload_request=1;
-	}
-	else if (signum==SIGUSR1){
-		signal(SIGUSR1,signal_handler);
-		status_request=1;
-	}
-	else{
+	} else {
+		if (signum==SIGHUP) {
+			signal(SIGHUP,signal_handler);
+			reload_request=1;
+		}
+	} else {
+		if (signum==SIGUSR1) {
+			signal(SIGUSR1,signal_handler);
+			status_request=1;
+		}
+	} else {
 		interrupted_by=signum;
 	}
 }
@@ -137,7 +137,7 @@ int pid, status, serrno;
 }
 #endif
 
-void usage(const char *name){
+void usage(const char *name) {
 	fprintf(stderr,"Alarm Pinger " PACKAGE_VERSION " (c) 2002 Jacek Konieczny <jajcus@jajcus.net>\n");
 	fprintf(stderr,"Usage:\n");
 	fprintf(stderr,"\t%s [-c <file>] [-f] [-d]\n",name);
@@ -153,20 +153,20 @@ void usage(const char *name){
 	fprintf(stderr,"\t-h\tthis help message.\n");
 }
 
-int main(int argc,char *argv[]){
-struct passwd *pw;
-struct group *gr;
-int c;
-FILE *pidfile;
-pid_t pid;
-int i;
-int do_debug=0;
-int stay_foreground=0;
-char *graph_dir=NULL;
-char *graph_location="/apinger/";
+int main(int argc,char *argv[]) {
+	struct passwd *pw;
+	struct group *gr;
+	int c;
+	FILE *pidfile;
+	pid_t pid;
+	int i;
+	int do_debug=0;
+	int stay_foreground=0;
+	char *graph_dir=NULL;
+	char *graph_location="/apinger/";
 
-	while((c=getopt(argc,argv,"fdhc:g:l:")) != -1){
-		switch(c){
+	while((c=getopt(argc,argv,"fdhc:g:l:")) != -1) {
+		switch(c) {
 			case 'f':
 				stay_foreground=1;
 				break;
@@ -195,30 +195,36 @@ char *graph_location="/apinger/";
 				return 1;
 		}
 	}
-	if (load_config(config_file)){
+
+	if (load_config(config_file)) {
 		logit("Couldn't read config (\"%s\").",config_file);
 		return 1;
 	}
-	if (do_debug) config->debug=1;
 
-	if (graph_dir!=NULL)
+	if (do_debug) {
+		config->debug=1;
+	}
+
+	if (graph_dir!=NULL) {
 		return rrd_print_cgi(graph_dir,graph_location);
+	}
 
-	if (!stay_foreground){
+	if (!stay_foreground) {
 		pidfile=fopen(config->pid_file,"r");
-		if (pidfile){
+		if (pidfile) {
 			int n=fscanf(pidfile,"%d",&pid);
-			if (n>0 && pid>0 && kill(pid,0)==0){
+			if (n>0 && pid>0 && kill(pid,0)==0) {
 				fprintf(stderr,"pinger already running\n");
 				return 1;
 			}
+
 			fclose(pidfile);
 		}
 	}
 
 	make_icmp_socket();
 	make_icmp6_socket();
-	if (icmp6_sock<0 && icmp_sock<0){
+	if (icmp6_sock<0 && icmp_sock<0) {
 		return 1;
 	}
 
@@ -227,51 +233,61 @@ char *graph_location="/apinger/";
 		debug("getpwnam(\"%s\") failed.",config->user);
 		return 1;
 	}
-	if (config->group){
+
+	if (config->group) {
 		gr=getgrnam(config->group);
 		if (!gr) {
 			debug("getgrnam(\"%s\") failed.",config->group);
 			return 1;
 		}
+	} else {
+		gr=NULL;
 	}
-	else gr=NULL;
 
 
-	if (!stay_foreground){
+	if (!stay_foreground) {
 		pid=fork();
-		if (pid<0){
+		if (pid<0) {
 			perror("fork");
 			exit(1);
 		}
-		if (pid>0){ /* parent */
+
+		if (pid>0) { /* parent */
 			pidfile=fopen(config->pid_file,"w");
-			if (!pidfile){
+			if (!pidfile) {
 				fprintf(stderr,"Couldn't open pid file for writting.");
 				perror(config->pid_file);
 				return 1;
 			}
+
 			fprintf(pidfile,"%i\n",pid);
 			fchown(fileno(pidfile),pw->pw_uid,gr?gr->gr_gid:pw->pw_gid);
 			fclose(pidfile);
 			free_config();
 			exit(0);
 		}
+
 		foreground=0;
-		for(i=0;i<255;i++)
-			if (i!=icmp_sock && i!=icmp6_sock)
+		for(i=0;i<255;i++) {
+			if (i!=icmp_sock && i!=icmp6_sock) {
 				close(i);
+			}
+		}
+
 		setsid();	
 	}
 	
-	if (initgroups(pw->pw_name,pw->pw_gid)){
+	if (initgroups(pw->pw_name,pw->pw_gid)) {
 		myperror("initgroups");
 		return 1;
 	}
-	if (setgid(pw->pw_gid)){
+
+	if (setgid(pw->pw_gid)) {
 		myperror("setgid");
 		return 1;
 	}
-	if (setuid(pw->pw_uid)){
+
+	if (setuid(pw->pw_uid)) {
 		myperror("setuid");
 		return 1;
 	}
@@ -286,21 +302,27 @@ char *graph_location="/apinger/";
 	signal(SIGCHLD,sigchld_handler);
 #endif
 	main_loop();
-	if (icmp_sock>=0) close(icmp_sock);
-	if (icmp6_sock>=0) close(icmp6_sock);
+	if (icmp_sock>=0) {
+		close(icmp_sock);
+	}
+
+	if (icmp6_sock>=0) {
+		close(icmp6_sock);
+	}
 
 	logit("Exiting on signal %i.",interrupted_by);
 
-	if (!foreground){
+	if (!foreground) {
 		/*clear the pid file*/
 		pidfile=fopen(config->pid_file,"w");
-		if (pidfile) fclose(pidfile);
+		if (pidfile) {
+			fclose(pidfile);
+		}
+
 		/* try to remove it. Most probably this will fail */
 		unlink(config->pid_file);
 	}
 
 	free_config();
-
 	return 0;
 }
-
