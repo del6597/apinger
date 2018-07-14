@@ -5,7 +5,7 @@ dist_noinst_DATA=FAQ.html
 EXTRA_DIST=FAQ.xml
 CLEANFILES=*.aux *.dvi *.fo *.log *.out
 MAINTAINERCLEANFILES=FAQ.html FAQ.pdf FAQ.ps
-STYLESHEET_DIR=/usr/share/sgml/docbook/xsl-stylesheets
+STYLESHEET_DIR=/usr/share/xml/docbook/stylesheet/docbook-xsl
 HTML_STYLESHEET=$(STYLESHEET_DIR)/html/docbook.xsl
 FO_STYLESHEET=$(STYLESHEET_DIR)/fo/docbook.xsl
 
